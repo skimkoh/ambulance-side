@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Ambuside</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="api_key">AIzaSyDmN5MP07wzzwDBrBXeDbSlmWuNpB_l1lw</string>
+</resources>
