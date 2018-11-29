@@ -48,6 +48,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.google.android.gms.maps.model.JointType.ROUND;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final String TAG = "Main";
@@ -156,14 +158,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
                 .title("Changi General Hospital")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
 
 
 
 
         Marker mParkwayEastHospital = mMap.addMarker(new MarkerOptions().position(ParkwayEastHospital)
                 .title("Parkway East Hospital")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
 
 
         //final LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
@@ -202,8 +204,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     FetchUrl.execute(url);
                     //move map camera
 
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
-                    mMap.animateCamera(CameraUpdateFactory.zoomTo(13));
+                    //mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
+                    //mMap.animateCamera(CameraUpdateFactory.zoomTo(13));
 
                     return true;
                 }
@@ -371,8 +373,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 // Adding all the points in the route to LineOptions
                 lineOptions.addAll(points);
-                lineOptions.width(10);
-                lineOptions.color(Color.RED);
+                lineOptions.width(20);
+                lineOptions.color(Color.BLUE);
+                lineOptions.jointType(ROUND);
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
 
