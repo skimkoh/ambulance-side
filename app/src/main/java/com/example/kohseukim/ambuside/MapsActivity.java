@@ -7,10 +7,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
@@ -36,8 +38,14 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.api.Context;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.SetOptions;
 import com.google.maps.android.ui.IconGenerator;
 
 import org.json.JSONObject;
@@ -49,6 +57,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Currency;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,13 +80,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean change = false;
     Polyline polylineFinal;
     FirebaseFirestore db;
-    //GeoPoint point = new LatLonPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+    Context mContext;
+    LocationManager locationManager;
+    private FirebaseAuth mAuth;
+
+
+
 
 
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -93,8 +109,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        //buildGoogleApiClient();
 
         db = FirebaseFirestore.getInstance();
+
+        mAuth = FirebaseAuth.getInstance();
 
         addNew();
     }
@@ -119,20 +138,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Location location = locationList.get(locationList.size() - 1);
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 mLastLocation = location;
-                Map<String, Object> newL = new HashMap<>();
-                newL.put("Location", new GeoPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
-                db.collection("AmbulanceSide").document("AmbulanceDetails").set(newL);
-
-                //GeoPoint geoPoint = new LatLonPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude());
 
 
-
-
-
-                //db.collection("AmbulanceSide").document("AmbulanceDetails").set(geoPoint);
                 if (mCurrLocationMarker != null) {
                     mCurrLocationMarker.remove();
                 }
+
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+
+                Map<String, Object> newL = new HashMap<>();
+                newL.put("Location", new GeoPoint(location.getLatitude(), location.getLongitude()));
+                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+
+
+
 
                 //Place current location marker
                 LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -149,6 +168,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
             }
         }
+
+
+
+
     };
 
     @Override
@@ -159,8 +182,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(120000); // two minute interval of updating the location. number must be in milliseconds
-        mLocationRequest.setFastestInterval(120000);
+        mLocationRequest.setInterval(60000); // two minute interval of updating the location. number must be in milliseconds
+        mLocationRequest.setFastestInterval(60000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -170,6 +193,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //Location Permission already granted
                 mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
                 mMap.setMyLocationEnabled(true);
+
+
             } else {
                 //Request Location Permission
                 checkLocationPermission();
@@ -178,6 +203,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else {
             mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper());
             mMap.setMyLocationEnabled(true);
+
+
         }
 
 
@@ -407,6 +434,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.color(Color.BLUE);
                 lineOptions.jointType(DEFAULT);
 
+
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+
+                Map<String, Object> newL = new HashMap<>();
+                newL.put("Route", path);
+                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+
+
+
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
 
             }
@@ -534,13 +570,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     private void addNew(){
+        FirebaseUser currentUser = mAuth.getCurrentUser();
         Map<String, Object> newAmbu = new HashMap<>();
-        newAmbu.put("Email", "kohseukim@gmail.com");
-        newAmbu.put("Pass", "1234");
-        //newAmbu.put("Location", new GeoPoint(1.214, 13.4));
-        db.collection("AmbulanceSide").document("AmbulanceDetails").set(newAmbu);
+        newAmbu.put("Email", currentUser.getEmail());
+        newAmbu.put("AmbulanceID", currentUser.getUid());
 
-
+        db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
 
     }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+    }
+
+
 }
