@@ -36,6 +36,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.maps.android.ui.IconGenerator;
 
 import org.json.JSONObject;
@@ -49,6 +51,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.google.android.gms.maps.model.JointType.DEFAULT;
 import static com.google.android.gms.maps.model.JointType.ROUND;
@@ -67,6 +70,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final LatLng ParkwayEastHospital = new LatLng(1.3150, 103.9088);
     boolean change = false;
     Polyline polylineFinal;
+    FirebaseFirestore db;
+    //GeoPoint point = new LatLonPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+
 
 
 
@@ -87,6 +93,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        db = FirebaseFirestore.getInstance();
+
+        addNew();
     }
 
     /**
@@ -109,6 +119,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Location location = locationList.get(locationList.size() - 1);
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
                 mLastLocation = location;
+                Map<String, Object> newL = new HashMap<>();
+                newL.put("Location", new GeoPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                db.collection("AmbulanceSide").document("AmbulanceDetails").set(newL);
+
+                //GeoPoint geoPoint = new LatLonPoint(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+
+
+
+
+
+                //db.collection("AmbulanceSide").document("AmbulanceDetails").set(geoPoint);
                 if (mCurrLocationMarker != null) {
                     mCurrLocationMarker.remove();
                 }
@@ -123,7 +144,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 //move map camera
-                //CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(16.0f).build();
+                //CameraPosition cameraPosition = new CameraPosdition.Builder().target(latLng).zoom(16.0f).build();
                 //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
             }
@@ -503,5 +524,23 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 anchor(iconFactory.getAnchorU(), iconFactory.getAnchorV());
 
         getMap().addMarker(markerOptions);
+    }
+
+//    public static final class LatLonPoint extends GeoPoint {
+//        public LatLonPoint(double latitude, double longitude) {
+//            super((int) (latitude * 1E6), (int) (longitude * 1E6));
+//        }
+//    }
+
+
+    private void addNew(){
+        Map<String, Object> newAmbu = new HashMap<>();
+        newAmbu.put("Email", "kohseukim@gmail.com");
+        newAmbu.put("Pass", "1234");
+        //newAmbu.put("Location", new GeoPoint(1.214, 13.4));
+        db.collection("AmbulanceSide").document("AmbulanceDetails").set(newAmbu);
+
+
+
     }
 }
