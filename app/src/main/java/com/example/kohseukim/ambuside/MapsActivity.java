@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -35,6 +36,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.ui.IconGenerator;
 
 import org.json.JSONObject;
 
@@ -48,6 +50,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.google.android.gms.maps.model.JointType.DEFAULT;
 import static com.google.android.gms.maps.model.JointType.ROUND;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -64,6 +67,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final LatLng ParkwayEastHospital = new LatLng(1.3150, 103.9088);
     boolean change = false;
     Polyline polylineFinal;
+
 
 
     @Override
@@ -156,25 +160,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
-        Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
-                .title("Changi General Hospital")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
+//        Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
+//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
+//
+//
+//
+//
+//        Marker mParkwayEastHospital = mMap.addMarker(new MarkerOptions().position(ParkwayEastHospital)
+//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
 
 
+        IconGenerator iconGenerator = new IconGenerator(this);
 
+        addIcon(iconGenerator, "Changi General Hospital", new LatLng(1.3405, 103.9496));
 
-        Marker mParkwayEastHospital = mMap.addMarker(new MarkerOptions().position(ParkwayEastHospital)
-                .title("Parkway East Hospital")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
+        addIcon(iconGenerator, "Parkway East Hospital", new LatLng(1.3150, 103.9088));
 
-
-        //final LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+        iconGenerator.setBackground(getResources().getDrawable(R.drawable.hospitalmarker));
 
 
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                marker.showInfoWindow();
+                //marker.showInfoWindow();
                 if(change == false) {
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
@@ -184,10 +192,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Start downloading json data from Google Directions API
                     FetchUrl.execute(url);
-                    //move map camera
 
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
-                    mMap.animateCamera(CameraUpdateFactory.zoomTo(13));
                     change = true;
                     return true;
                 }
@@ -285,6 +290,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return data;
     }
 
+    public GoogleMap getMap() {
+        return mMap;
+    }
+
     // Fetches data from url passed
     private class FetchUrl extends AsyncTask<String, Void, String> {
 
@@ -375,7 +384,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.addAll(points);
                 lineOptions.width(20);
                 lineOptions.color(Color.BLUE);
-                lineOptions.jointType(ROUND);
+                lineOptions.jointType(DEFAULT);
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
 
@@ -485,5 +494,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onDestroy() {
         Log.i(TAG, "onDestroy");
         super.onDestroy();
+    }
+
+    private void addIcon(IconGenerator iconFactory, String text, LatLng position) {
+        MarkerOptions markerOptions = new MarkerOptions().
+                icon(BitmapDescriptorFactory.fromBitmap(iconFactory.makeIcon(text))).
+                position(position).
+                anchor(iconFactory.getAnchorU(), iconFactory.getAnchorV());
+
+        getMap().addMarker(markerOptions);
     }
 }
