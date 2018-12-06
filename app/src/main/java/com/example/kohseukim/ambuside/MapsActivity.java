@@ -80,6 +80,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean change = false;
     Polyline polylineFinal;
     FirebaseFirestore db;
+    Polyline line;
     Context mContext;
     LocationManager locationManager;
     private FirebaseAuth mAuth;
@@ -231,6 +232,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public boolean onMarkerClick(Marker marker) {
                 //marker.showInfoWindow();
+
                 if(change == false) {
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
@@ -409,6 +411,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             ArrayList<LatLng> points;
             PolylineOptions lineOptions = null;
 
+
+
             // Traversing through all the routes
             for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<>();
@@ -435,12 +439,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.jointType(DEFAULT);
 
 
-                FirebaseUser currentUser = mAuth.getCurrentUser();
-
-                Map<String, Object> newL = new HashMap<>();
-                newL.put("Route", path);
-                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
-
+//                FirebaseUser currentUser = mAuth.getCurrentUser();
+//
+//                Map<String, Object> newL = new HashMap<>();
+//                newL.put("Route", path);
+//                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+//
 
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
@@ -562,11 +566,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         getMap().addMarker(markerOptions);
     }
 
-//    public static final class LatLonPoint extends GeoPoint {
-//        public LatLonPoint(double latitude, double longitude) {
-//            super((int) (latitude * 1E6), (int) (longitude * 1E6));
-//        }
-//    }
 
 
     private void addNew(){
