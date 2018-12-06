@@ -5,15 +5,7 @@
     android:layout_height="match_parent"
     android:background="#F8E2E2">
 
-    <ScrollView
-        android:id="@+id/login_form"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:paddingTop="10dp"
 
-        >
 
         <LinearLayout
             android:id="@+id/email_login_form"
@@ -33,6 +25,7 @@
                 android:layout_marginRight="15dp"
                 android:src="@drawable/completelogo" />
 
+
             <EditText
                 android:id="@+id/email"
                 android:layout_width="297dp"
@@ -43,7 +36,6 @@
                 android:hint="@string/prompt_email"
                 android:inputType="textEmailAddress"
                 android:maxLines="1" />
-
 
             <EditText
                 android:id="@+id/password"
@@ -68,7 +60,6 @@
 
         </LinearLayout>
 
-    </ScrollView>
 
     <ProgressBar
         android:id="@+id/progressBar"
