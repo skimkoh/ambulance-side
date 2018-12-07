@@ -44,10 +44,6 @@
         </activity>
         <activity android:name=".MapsActivity" />
 
-        <service
-            android:name=".LocationService"
-            android:enabled="true"
-            android:exported="true"></service>
     </application>
 
 </manifest>

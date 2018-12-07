@@ -192,12 +192,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 btn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
+
                             if(allpolylines.size() > 0){
-                                for(Polyline l:allpolylines){
+                                for(Polyline l: allpolylines){
                                     l.remove();
                                 }
                             }
-
 
                                     LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
                                     Log.i("NOW:", "loc" + location.getLatitude() + location.getLongitude());
@@ -305,7 +305,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         final Handler handler = new Handler();
-        final int delay = 1000;
+        final int delay = 3000;
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -568,11 +568,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if(lineOptions != null) {
                 polylineFinal = mMap.addPolyline(lineOptions);
                 allpolylines.add(polylineFinal);
+                Log.i("POLY", "Size: " + allpolylines.size());
+                setAllpolylines(allpolylines);
             }
             else {
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
+    }
+
+    public List<Polyline> getAllpolylines() {
+        return allpolylines;
+    }
+
+    public void setAllpolylines(List<Polyline> allpolylines) {
+        this.allpolylines = allpolylines;
     }
 
     @Override
