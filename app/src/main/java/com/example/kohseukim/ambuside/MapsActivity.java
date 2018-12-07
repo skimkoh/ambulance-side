@@ -43,7 +43,13 @@ import com.google.android.gms.tasks.Task;
 import com.google.api.Context;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.SetOptions;
 import com.google.maps.android.ui.IconGenerator;
@@ -54,9 +60,11 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Currency;
 import java.util.HashMap;
 import java.util.List;
@@ -84,7 +92,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     Context mContext;
     LocationManager locationManager;
     private FirebaseAuth mAuth;
-
+    PolylineOptions poly;
+    LatLng dest;
+    DatabaseReference dref;
 
 
 
@@ -116,8 +126,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mAuth = FirebaseAuth.getInstance();
 
+
         addNew();
+
+
     }
+
+
+
 
     /**
      * Manipulates the map once available.
@@ -147,6 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 FirebaseUser currentUser = mAuth.getCurrentUser();
 
+                //update current location of user to database
                 Map<String, Object> newL = new HashMap<>();
                 newL.put("Location", new GeoPoint(location.getLatitude(), location.getLongitude()));
                 db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
@@ -168,11 +185,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
             }
+
+//            db.collection("AmbulanceSide").document(mAuth.getUid()).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+//                @Override
+//                public void onEvent(@javax.annotation.Nullable DocumentSnapshot documentSnapshot, @javax.annotation.Nullable FirebaseFirestoreException e) {
+//
+//                    poly = getLineOptions();
+//
+//                    if (poly != null) {
+//                        polylineFinal.remove();
+//                        LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+//                        dest = getDestination();
+//                        String url = getUrl(origin, dest);
+//                        Log.d("onMapClick", url.toString());
+//                        FetchUrl FetchUrl = new FetchUrl();
+//
+//                        // Start downloading json data from Google Directions API
+//                        FetchUrl.execute(url);
+//                        Log.d(TAG, "POLYLINE UPDATE");
+//
+//                    }
+//                }});
+
+            FirebaseUser currentuser = mAuth.getCurrentUser();
+            db.collection("AmbulanceSide").document(currentuser.getUid()).collection("Polyline").document("Update").get();
+
+
+//
+//
+//
+//
+//
         }
-
-
-
-
     };
 
     @Override
@@ -242,6 +286,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Start downloading json data from Google Directions API
                     FetchUrl.execute(url);
+
+                    setDestination(dest);
 
                     change = true;
                     return true;
@@ -439,12 +485,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.jointType(DEFAULT);
 
 
-//                FirebaseUser currentUser = mAuth.getCurrentUser();
-//
-//                Map<String, Object> newL = new HashMap<>();
-//                newL.put("Route", path);
-//                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
-//
+                FirebaseUser currentUser = mAuth.getCurrentUser();
+
+                Map<String, Object> newL = new HashMap<>();
+                newL.put("Route", path);
+                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+                db.collection("AmbulanceSide").document(currentUser.getUid()).collection("Polyline").document("Update").set(newL);
+
 
 
                 Log.d("onPostExecute","onPostExecute lineoptions decoded");
@@ -453,6 +500,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Drawing polyline in the Google Map for the i-th route
             if(lineOptions != null) {
+                setLineOptions(lineOptions);
                 polylineFinal = mMap.addPolyline(lineOptions);
             }
             else {
@@ -460,6 +508,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
     }
+
+    private void setLineOptions(PolylineOptions lineOptions){
+        PolylineOptions poly = lineOptions;
+    }
+
+    private PolylineOptions getLineOptions(){
+        return poly;
+    }
+
+    private void setDestination(LatLng destination){
+        LatLng dest = destination;
+    }
+
+    private LatLng getDestination(){
+        return dest;
+    }
+
+
 
     @Override
     public void onPause() {
