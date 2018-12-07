@@ -31,6 +31,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.LocationSource;
@@ -78,19 +79,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = "Main";
     private GoogleMap mMap;
     ArrayList<LatLng> MarkerPoints;
-    GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     Marker mCurrLocationMarker;
     LocationRequest mLocationRequest;
     FusedLocationProviderClient mFusedLocationClient;
-    private static final LatLng ChangiGeneralHospital = new LatLng(1.3405, 103.9496);
-    private static final LatLng ParkwayEastHospital = new LatLng(1.3150, 103.9088);
     boolean change = false;
     Polyline polylineFinal;
     FirebaseFirestore db;
-    Polyline line;
-    Context mContext;
-    LocationManager locationManager;
     private FirebaseAuth mAuth;
     PolylineOptions lineOptions = null;
     private Button btn;
@@ -98,6 +93,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean same = true;
     List<Location> coord = new ArrayList<>();
     List<LatLng> destination = new ArrayList<>();
+    boolean isFirstTime = true;
+
 
 
     @Override
@@ -177,6 +174,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 //Place current location marker
+                final LatLng here = new LatLng(coord.get(0).getLatitude(), coord.get(0).getLongitude());
                 final LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 /*MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(latLng);
@@ -185,10 +183,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mCurrLocationMarker = mMap.addMarker(markerOptions);*/
 
 
-                //move map camera
-                //CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(13).build();
-                //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                if(allpolylines.size() > 0) {
+                    CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(13).build();
+                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                }
+                else{
+                    if (mMap != null)
+                        if (mMap != null)
+                            if (isFirstTime) {
+                                CameraUpdate center =
+                                        CameraUpdateFactory.newLatLng(here);
+                                CameraUpdate zoom = CameraUpdateFactory.zoomTo(13);
+                                mMap.moveCamera(center);
+                                mMap.animateCamera(zoom);
+                                isFirstTime = false;
+                            }
+
+                }
                 //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
+                mMap.getUiSettings().setZoomControlsEnabled(true);
 
                 btn = findViewById(R.id.InvisibleButton);
 
@@ -204,13 +217,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
 
                                     LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
+                                    try{
                                     LatLng dest = destination.get(0);
-                                    String url = getUrl(origin, dest);
-                                    Log.d("onMapClick", url.toString());
-                                    FetchUrl FetchUrl = new FetchUrl();
+                                        String url = getUrl(origin, dest);
+                                        Log.d("onMapClick", url.toString());
+                                        FetchUrl FetchUrl = new FetchUrl();
 
-                                    // Start downloading json data from Google Directions API
-                                    FetchUrl.execute(url);
+                                        // Start downloading json data from Google Directions API
+                                        FetchUrl.execute(url);
+
+                                    }catch (IndexOutOfBoundsException e){
+
+                                    }
 
 
                         }
@@ -271,8 +289,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         }
-
-
 
 //        Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
 //                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
@@ -613,7 +629,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
@@ -655,7 +671,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
 
     }
-
 
     @Override
     protected void onStart() {
