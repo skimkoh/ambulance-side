@@ -95,11 +95,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     PolylineOptions lineOptions = null;
     private Button btn;
     List<Polyline> allpolylines = new ArrayList<Polyline>();
-    List<LatLng> sameLocation = new ArrayList<>();
     boolean same = true;
     List<Location> coord = new ArrayList<>();
-
-
+    List<LatLng> destination = new ArrayList<>();
 
 
     @Override
@@ -150,8 +148,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (locationList.size() > 0) {
                 //The last location in the list is the newest
                 final Location location = locationList.get(locationList.size() - 1);
+                //LatLng current = new LatLng(location.getLatitude(), location.getLongitude());
                 coord.add(location);
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
+                //Log.i("Inside Coord: ", "Current " + current);
+
                 Log.i("Test", "test: " + coord.size());
                 mLastLocation = location;
 
@@ -185,9 +186,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
                 //move map camera
-                //CameraPosition cameraPosition = new CameraPosdition.Builder().target(latLng).zoom(16.0f).build();
+                //CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(13).build();
                 //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
+                //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
+
+                btn = findViewById(R.id.InvisibleButton);
+
 
                 btn.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -200,8 +204,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
 
                                     LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
-                                    Log.i("NOW:", "loc" + location.getLatitude() + location.getLongitude());
-                                    LatLng dest = new LatLng(1.3405, 103.9496);
+                                    LatLng dest = destination.get(0);
                                     String url = getUrl(origin, dest);
                                     Log.d("onMapClick", url.toString());
                                     FetchUrl FetchUrl = new FetchUrl();
@@ -216,50 +219,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     });
 
 
-//                btn.setOnClickListener(new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View v) {
-//                        if(coord.size() > 1 && coord.size()-1 != coord.size()-2){
-//                            if(allpolylines != null){
-//                                for(Polyline l: allpolylines){
-//                                    l.remove();
-//                                }
-//                                LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
-//                                LatLng dest = new LatLng(1.3405, 103.9496);
-//                                String url = getUrl(origin, dest);
-//                                Log.d("onMapClick", url.toString());
-//                                FetchUrl FetchUrl = new FetchUrl();
-//
-//                                // Start downloading json data from Google Directions API
-//                                FetchUrl.execute(url);
-//                            }
-//                        }}
-//
-//                });
+                try{
+                    float[] distance = new float[1];
+                    Location.distanceBetween(coord.get(coord.size()-2).getLatitude(),coord.get(coord.size()-2).getLongitude(),coord.get(coord.size()-1).getLatitude(), coord.get(coord.size()-1).getLongitude(), distance);
+                    Log.i("Dis", "dis" + distance[0]);
 
+                    if(distance[0] > 2){
 
+                        btn.performClick();
 
+                    }
+                }catch (ArrayIndexOutOfBoundsException e){
 
-//                db.collection("AmbulanceSide").document(mAuth.getUid())
-//                        .addSnapshotListener(new EventListener<DocumentSnapshot>() {
-//                    @Override
-//                    public void onEvent(@javax.annotation.Nullable DocumentSnapshot documentSnapshot, @javax.annotation.Nullable FirebaseFirestoreException e) {
-//                        if(polylineFinal != null){
-//                        List<LatLng> routess = polylineFinal.getPoints();
-//                        LatLng now = new LatLng(location.getLatitude(), location.getLongitude());
-//                        int x = routess.indexOf(now);
-//                        List<LatLng> test = routess.subList(2, 5);
-//                        polylineFinal.setPoints(test);
-//                        LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
-//                        }
-//
-//
-//                    }
-//                });
-
-
-
-
+                }
 
             }
         }
@@ -275,8 +247,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(500); // two minute interval of updating the location. number must be in milliseconds
-        mLocationRequest.setFastestInterval(500);
+        mLocationRequest.setInterval(1000); // two minute interval of updating the location. number must be in milliseconds
+        mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -299,25 +271,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         }
-
-        btn = (Button) findViewById(R.id.InvisibleButton);
-
-
-
-        final Handler handler = new Handler();
-        final int delay = 3000;
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                    Log.i("Test", "Fake running");
-
-                    btn.performClick();
-                    handler.postDelayed(this, delay);
-                }
-
-        }, delay);
-
-
 
 
 
@@ -348,6 +301,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if(change == false) {
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
+                    if(destination.size() != 1){
+                    destination.add(dest);
+                    }
+                    else
+                        destination.set(0, dest);
                     String url = getUrl(origin, dest);
                     Log.d("onMapClick", url.toString());
                     FetchUrl FetchUrl = new FetchUrl();
@@ -362,6 +320,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polylineFinal.remove();
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
+                    if(destination.size() != 1){
+                        destination.add(dest);
+                    }
+                    else
+                        destination.set(0, dest);
                     String url = getUrl(origin, dest);
                     Log.d("onMapClick", url.toString());
                     FetchUrl FetchUrl = new FetchUrl();
@@ -569,20 +532,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 polylineFinal = mMap.addPolyline(lineOptions);
                 allpolylines.add(polylineFinal);
                 Log.i("POLY", "Size: " + allpolylines.size());
-                setAllpolylines(allpolylines);
             }
             else {
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
-    }
-
-    public List<Polyline> getAllpolylines() {
-        return allpolylines;
-    }
-
-    public void setAllpolylines(List<Polyline> allpolylines) {
-        this.allpolylines = allpolylines;
     }
 
     @Override
@@ -708,7 +662,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
     }
-
 
 }
 
