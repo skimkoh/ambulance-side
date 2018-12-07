@@ -11,12 +11,16 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -27,8 +31,10 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -43,9 +49,6 @@ import com.google.android.gms.tasks.Task;
 import com.google.api.Context;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -60,11 +63,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Currency;
 import java.util.HashMap;
 import java.util.List;
@@ -78,26 +79,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private static final String TAG = "Main";
     private GoogleMap mMap;
     ArrayList<LatLng> MarkerPoints;
-    GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     Marker mCurrLocationMarker;
     LocationRequest mLocationRequest;
     FusedLocationProviderClient mFusedLocationClient;
-    private static final LatLng ChangiGeneralHospital = new LatLng(1.3405, 103.9496);
-    private static final LatLng ParkwayEastHospital = new LatLng(1.3150, 103.9088);
     boolean change = false;
     Polyline polylineFinal;
     FirebaseFirestore db;
-    Polyline line;
-    Context mContext;
-    LocationManager locationManager;
     private FirebaseAuth mAuth;
-    PolylineOptions poly;
-    LatLng dest;
-    DatabaseReference dref;
-
-
-
+    PolylineOptions lineOptions = null;
+    private Button btn;
+    List<Polyline> allpolylines = new ArrayList<Polyline>();
+    boolean same = true;
+    List<Location> coord = new ArrayList<>();
+    List<LatLng> destination = new ArrayList<>();
+    boolean isFirstTime = true;
 
 
 
@@ -112,6 +108,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkLocationPermission();
+
+
         }
         // Initializing
         MarkerPoints = new ArrayList<>();
@@ -126,14 +124,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mAuth = FirebaseAuth.getInstance();
 
-
         addNew();
-
-
     }
-
-
-
 
     /**
      * Manipulates the map once available.
@@ -149,11 +141,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationCallback mLocationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
-            List<Location> locationList = locationResult.getLocations();
+            final List<Location> locationList = locationResult.getLocations();
             if (locationList.size() > 0) {
                 //The last location in the list is the newest
-                Location location = locationList.get(locationList.size() - 1);
+                final Location location = locationList.get(locationList.size() - 1);
+                //LatLng current = new LatLng(location.getLatitude(), location.getLongitude());
+                coord.add(location);
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
+                //Log.i("Inside Coord: ", "Current " + current);
+
+                Log.i("Test", "test: " + coord.size());
                 mLastLocation = location;
 
 
@@ -163,16 +160,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 FirebaseUser currentUser = mAuth.getCurrentUser();
 
-                //update current location of user to database
                 Map<String, Object> newL = new HashMap<>();
                 newL.put("Location", new GeoPoint(location.getLatitude(), location.getLongitude()));
                 db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
 
 
+//                try{
+//                if(locationList.get(locationList.size()-1) != locationList.get(locationList.size()-2)){
+//                    same = false;
+//                }} catch (ArrayIndexOutOfBoundsException e){
+//
+//                }
 
 
                 //Place current location marker
-                LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+                final LatLng here = new LatLng(coord.get(0).getLatitude(), coord.get(0).getLongitude());
+                final LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
                 /*MarkerOptions markerOptions = new MarkerOptions();
                 markerOptions.position(latLng);
                 markerOptions.title("Current Position");
@@ -180,43 +183,78 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mCurrLocationMarker = mMap.addMarker(markerOptions);*/
 
 
-                //move map camera
-                //CameraPosition cameraPosition = new CameraPosdition.Builder().target(latLng).zoom(16.0f).build();
-                //mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
+                if(allpolylines.size() > 0) {
+                    CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(13).build();
+                    mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                }
+                else{
+                    if (mMap != null)
+                        if (mMap != null)
+                            if (isFirstTime) {
+                                CameraUpdate center =
+                                        CameraUpdateFactory.newLatLng(here);
+                                CameraUpdate zoom = CameraUpdateFactory.zoomTo(13);
+                                mMap.moveCamera(center);
+                                mMap.animateCamera(zoom);
+                                isFirstTime = false;
+                            }
+
+                }
+                //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
+                mMap.getUiSettings().setZoomControlsEnabled(true);
+
+                btn = findViewById(R.id.InvisibleButton);
+
+
+                btn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                            if(allpolylines.size() > 0){
+                                for(Polyline l: allpolylines){
+                                    l.remove();
+                                }
+                            }
+
+                                    LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
+                                    try{
+                                    LatLng dest = destination.get(0);
+                                        String url = getUrl(origin, dest);
+                                        Log.d("onMapClick", url.toString());
+                                        FetchUrl FetchUrl = new FetchUrl();
+
+                                        // Start downloading json data from Google Directions API
+                                        FetchUrl.execute(url);
+
+                                    }catch (IndexOutOfBoundsException e){
+
+                                    }
+
+
+                        }
+
+
+                    });
+
+
+                try{
+                    float[] distance = new float[1];
+                    Location.distanceBetween(coord.get(coord.size()-2).getLatitude(),coord.get(coord.size()-2).getLongitude(),coord.get(coord.size()-1).getLatitude(), coord.get(coord.size()-1).getLongitude(), distance);
+                    Log.i("Dis", "dis" + distance[0]);
+
+                    if(distance[0] > 2){
+
+                        btn.performClick();
+
+                    }
+                }catch (ArrayIndexOutOfBoundsException e){
+
+                }
+
             }
-
-//            db.collection("AmbulanceSide").document(mAuth.getUid()).addSnapshotListener(new EventListener<DocumentSnapshot>() {
-//                @Override
-//                public void onEvent(@javax.annotation.Nullable DocumentSnapshot documentSnapshot, @javax.annotation.Nullable FirebaseFirestoreException e) {
-//
-//                    poly = getLineOptions();
-//
-//                    if (poly != null) {
-//                        polylineFinal.remove();
-//                        LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-//                        dest = getDestination();
-//                        String url = getUrl(origin, dest);
-//                        Log.d("onMapClick", url.toString());
-//                        FetchUrl FetchUrl = new FetchUrl();
-//
-//                        // Start downloading json data from Google Directions API
-//                        FetchUrl.execute(url);
-//                        Log.d(TAG, "POLYLINE UPDATE");
-//
-//                    }
-//                }});
-
-            FirebaseUser currentuser = mAuth.getCurrentUser();
-            db.collection("AmbulanceSide").document(currentuser.getUid()).collection("Polyline").document("Update").get();
-
-
-//
-//
-//
-//
-//
         }
+
+
     };
 
     @Override
@@ -227,8 +265,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(60000); // two minute interval of updating the location. number must be in milliseconds
-        mLocationRequest.setFastestInterval(60000);
+        mLocationRequest.setInterval(1000); // two minute interval of updating the location. number must be in milliseconds
+        mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -251,7 +289,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         }
-
 
 //        Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
 //                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
@@ -280,15 +317,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if(change == false) {
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
+                    if(destination.size() != 1){
+                    destination.add(dest);
+                    }
+                    else
+                        destination.set(0, dest);
                     String url = getUrl(origin, dest);
                     Log.d("onMapClick", url.toString());
                     FetchUrl FetchUrl = new FetchUrl();
 
                     // Start downloading json data from Google Directions API
                     FetchUrl.execute(url);
-
-                    setDestination(dest);
-
                     change = true;
                     return true;
                 }
@@ -297,6 +336,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     polylineFinal.remove();
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
+                    if(destination.size() != 1){
+                        destination.add(dest);
+                    }
+                    else
+                        destination.set(0, dest);
                     String url = getUrl(origin, dest);
                     Log.d("onMapClick", url.toString());
                     FetchUrl FetchUrl = new FetchUrl();
@@ -313,6 +357,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
+
 
     }
 
@@ -387,6 +432,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public GoogleMap getMap() {
+
         return mMap;
     }
 
@@ -455,7 +501,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             ArrayList<LatLng> points;
-            PolylineOptions lineOptions = null;
 
 
 
@@ -478,11 +523,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     points.add(position);
                 }
 
-                // Adding all the points in the route to LineOptions
+                 //Adding all the points in the route to LineOptions
                 lineOptions.addAll(points);
                 lineOptions.width(20);
                 lineOptions.color(Color.BLUE);
                 lineOptions.jointType(DEFAULT);
+
 
 
                 FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -490,7 +536,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Map<String, Object> newL = new HashMap<>();
                 newL.put("Route", path);
                 db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
-                db.collection("AmbulanceSide").document(currentUser.getUid()).collection("Polyline").document("Update").set(newL);
 
 
 
@@ -500,32 +545,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Drawing polyline in the Google Map for the i-th route
             if(lineOptions != null) {
-                setLineOptions(lineOptions);
                 polylineFinal = mMap.addPolyline(lineOptions);
+                allpolylines.add(polylineFinal);
+                Log.i("POLY", "Size: " + allpolylines.size());
             }
             else {
                 Log.d("onPostExecute","without Polylines drawn");
             }
         }
     }
-
-    private void setLineOptions(PolylineOptions lineOptions){
-        PolylineOptions poly = lineOptions;
-    }
-
-    private PolylineOptions getLineOptions(){
-        return poly;
-    }
-
-    private void setDestination(LatLng destination){
-        LatLng dest = destination;
-    }
-
-    private LatLng getDestination(){
-        return dest;
-    }
-
-
 
     @Override
     public void onPause() {
@@ -601,7 +629,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
-                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
@@ -644,12 +672,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
     }
 
-
 }
+
+
