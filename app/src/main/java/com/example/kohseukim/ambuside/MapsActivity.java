@@ -3,6 +3,7 @@ package com.example.kohseukim.ambuside;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -89,6 +90,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private FirebaseAuth mAuth;
     PolylineOptions lineOptions = null;
     private Button btn;
+    private Button Signout;
     List<Polyline> allpolylines = new ArrayList<Polyline>();
     boolean same = true;
     List<Location> coord = new ArrayList<>();
@@ -125,6 +127,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mAuth = FirebaseAuth.getInstance();
 
         addNew();
+
+        Signout = findViewById(R.id.SignOutButton);
+        Signout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FirebaseAuth.getInstance().signOut();
+                Toast.makeText(MapsActivity.this, "Signed Out", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(MapsActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            }
+        });
     }
 
     /**
@@ -141,6 +156,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     LocationCallback mLocationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
+
             final List<Location> locationList = locationResult.getLocations();
             if (locationList.size() > 0) {
                 //The last location in the list is the newest
@@ -151,6 +167,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //Log.i("Inside Coord: ", "Current " + current);
 
                 Log.i("Test", "test: " + coord.size());
+
+
                 mLastLocation = location;
 
 
@@ -206,15 +224,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 btn = findViewById(R.id.InvisibleButton);
 
 
+
                 btn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
 
-                            if(allpolylines.size() > 0){
-                                for(Polyline l: allpolylines){
-                                    l.remove();
-                                }
-                            }
+//                            if(allpolylines.size() > 0){
+//                                for(Polyline l: allpolylines){
+//                                    l.remove();
+//                                }
+//                            }
 
                                     LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
                                     try{
@@ -225,6 +244,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                                         // Start downloading json data from Google Directions API
                                         FetchUrl.execute(url);
+
+//                                        allpolylines.get(1).remove();
+
 
                                     }catch (IndexOutOfBoundsException e){
 
@@ -315,8 +337,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 //marker.showInfoWindow();
 
                 if(change == false) {
+
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
+
+                    FirebaseUser currentUser = mAuth.getCurrentUser();
+                    Map<String, Object> newAmbu = new HashMap<>();
+                    newAmbu.put("Destination", dest);
+                    db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
+
+
                     if(destination.size() != 1){
                     destination.add(dest);
                     }
@@ -546,6 +576,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // Drawing polyline in the Google Map for the i-th route
             if(lineOptions != null) {
                 polylineFinal = mMap.addPolyline(lineOptions);
+                if(allpolylines.size() > 1 ){
+                    for ( Polyline l: allpolylines){
+                        l.remove();
+                    }
+                }
                 allpolylines.add(polylineFinal);
                 Log.i("POLY", "Size: " + allpolylines.size());
             }
@@ -677,6 +712,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
     }
+
+
+
+
 
 }
 
