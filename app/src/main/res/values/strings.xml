@@ -5,5 +5,6 @@
     <string name="prompt_password">Enter password</string>
     <string name="prompt_sign_in">Sign In</string>
     <string name="prompt_email">Enter email</string>
+    <string name="SignOut">Sign Out</string>
 
 </resources>

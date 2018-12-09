@@ -126,7 +126,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         mAuth = FirebaseAuth.getInstance();
 
-        addNew();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        Map<String, Boolean> newAmbu = new HashMap<>();
+        newAmbu.put("isActive", true);
+
+
+        db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu,SetOptions.merge());
+
+        //addNew();
 
         Signout = findViewById(R.id.SignOutButton);
         Signout.setOnClickListener(new View.OnClickListener() {
@@ -179,7 +186,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 FirebaseUser currentUser = mAuth.getCurrentUser();
 
                 Map<String, Object> newL = new HashMap<>();
-                newL.put("Location", new GeoPoint(location.getLatitude(), location.getLongitude()));
+                newL.put("currentLocation", new GeoPoint(location.getLatitude(), location.getLongitude()));
                 db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
 
 
@@ -341,17 +348,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
 
-                    FirebaseUser currentUser = mAuth.getCurrentUser();
-                    Map<String, Object> newAmbu = new HashMap<>();
-                    newAmbu.put("Destination", dest);
-                    db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
-
-
                     if(destination.size() != 1){
-                    destination.add(dest);
+                        destination.add(dest);
                     }
                     else
                         destination.set(0, dest);
+
+                   // FirebaseUser currentUser = mAuth.getCurrentUser();
+                    //Map<String, Object> newAmbu = new HashMap<>();
+
+                    //GeoPoint AmbuDest = new GeoPoint(destination.get(0).latitude, destination.get(0).longitude);
+
+                    //newAmbu.put("Destination", AmbuDest);
+                    //newAmbu.put("isActive",true);
+                    //db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
+
+
                     String url = getUrl(origin, dest);
                     Log.d("onMapClick", url.toString());
                     FetchUrl FetchUrl = new FetchUrl();
@@ -360,6 +372,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     FetchUrl.execute(url);
                     change = true;
                     return true;
+
                 }
                 else {
                     change = true;
@@ -531,7 +544,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             ArrayList<LatLng> points;
-
+            ArrayList<GeoPoint> list = new ArrayList<>();
 
 
             // Traversing through all the routes
@@ -549,6 +562,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     double lat = Double.parseDouble(point.get("lat"));
                     double lng = Double.parseDouble(point.get("lng"));
                     LatLng position = new LatLng(lat, lng);
+                    list.add(new GeoPoint(lat,lng));
 
                     points.add(position);
                 }
@@ -564,7 +578,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 FirebaseUser currentUser = mAuth.getCurrentUser();
 
                 Map<String, Object> newL = new HashMap<>();
-                newL.put("Route", path);
+                newL.put("route", list);
                 db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
 
 
@@ -697,7 +711,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-    private void addNew(){
+    /*private void addNew(){
         FirebaseUser currentUser = mAuth.getCurrentUser();
         Map<String, Object> newAmbu = new HashMap<>();
         newAmbu.put("Email", currentUser.getEmail());
@@ -705,7 +719,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
 
-    }
+    } */
 
     @Override
     protected void onStart() {
