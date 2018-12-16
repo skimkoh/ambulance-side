@@ -41,32 +41,35 @@ public class LoginActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //login activity layout can be seen in xml file
         setContentView(R.layout.activity_login);
         mEmail = findViewById(R.id.email);
         mPassword = findViewById(R.id.password);
         mProgressBar = findViewById(R.id.progressBar);
 
+        //get instance of current user
         setupFirebaseAuth();
         findViewById(R.id.email_sign_in_button).setOnClickListener(this);
-        //findViewById(R.id.link_register).setOnClickListener(this);
-
         hideSoftKeyboard();
     }
 
 
 
-
+    //show progress of LogIn on the UI
     private void showDialog(){
         mProgressBar.setVisibility(View.VISIBLE);
 
     }
 
+    //hide progress bar from UI
     private void hideDialog(){
         if(mProgressBar.getVisibility() == View.VISIBLE){
             mProgressBar.setVisibility(View.INVISIBLE);
         }
     }
 
+    //hiding keyboard from UI
     private void hideSoftKeyboard(){
         this.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
     }
@@ -77,34 +80,18 @@ public class LoginActivity extends AppCompatActivity implements
     private void setupFirebaseAuth(){
         Log.d(TAG, "setupFirebaseAuth: started.");
 
+        //listen to the login state of the user
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
+
+                //if user has previously signed in, toast will appear and UI will change to MapsActivity
                 if (user != null) {
                     Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
                     Toast.makeText(LoginActivity.this, "Authenticated with: " + user.getEmail(), Toast.LENGTH_SHORT).show();
 
-//                    FirebaseFirestore db = FirebaseFirestore.getInstance();
-//                    FirebaseFirestoreSettings settings = new FirebaseFirestoreSettings.Builder()
-//                            .setTimestampsInSnapshotsEnabled(true)
-//                            .build();
-//                    db.setFirestoreSettings(settings);
-//
-//                    DocumentReference userRef = db.collection(getString(R.string.collection_users))
-//                            .document(user.getUid());
-//
-//                    userRef.get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
-//                        @Override
-//                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
-//                            if(task.isSuccessful()){
-//                                Log.d(TAG, "onComplete: successfully set the user client.");
-//                                User user = task.getResult().toObject(User.class);
-//                                ((UserClient)(getApplicationContext())).setUser(user);
-//                            }
-//                        }
-//                    });
-
+                    //once Login is successful, change to MapsActivity
                     Intent intent = new Intent(LoginActivity.this, MapsActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
@@ -122,6 +109,7 @@ public class LoginActivity extends AppCompatActivity implements
     @Override
     public void onStart() {
         super.onStart();
+        //add a listener to the log in state of the user
         FirebaseAuth.getInstance().addAuthStateListener(mAuthListener);
     }
 
@@ -141,6 +129,8 @@ public class LoginActivity extends AppCompatActivity implements
 
             showDialog();
 
+            //user authenticate themselves using email and password
+            //only users given authentication from firebase can log in
             FirebaseAuth.getInstance().signInWithEmailAndPassword(mEmail.getText().toString(),
                     mPassword.getText().toString())
                     .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
@@ -165,11 +155,7 @@ public class LoginActivity extends AppCompatActivity implements
     @Override
     public void onClick(View view) {
         switch (view.getId()){
-//            case R.id.link_register:{
-//                Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-//                startActivity(intent);
-//                break;
-//            }
+
 
             case R.id.email_sign_in_button:{
                 signIn();

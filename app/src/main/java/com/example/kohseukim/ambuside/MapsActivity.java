@@ -98,7 +98,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     boolean isFirstTime = true;
 
 
-
+/// IMPORTANT !!
+    // API key has been disabled. Please change the API key to your own in order to successfully run the app.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -122,19 +123,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
         //buildGoogleApiClient();
 
+        //get instance of firebasefirestore
         db = FirebaseFirestore.getInstance();
 
+        //get instance of user authentication
         mAuth = FirebaseAuth.getInstance();
 
+        //update firebase
+        //update "isActive" field as true for the specific signed in user.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         Map<String, Boolean> newAmbu = new HashMap<>();
         newAmbu.put("isActive", true);
+        db.collection("ambulances").document(currentUser.getUid()).set(newAmbu,SetOptions.merge());
 
 
-        db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu,SetOptions.merge());
-
-        //addNew();
-
+        //allow user to sign out by clicking the sign out button
+        //return to Login activity once user signs out
         Signout = findViewById(R.id.SignOutButton);
         Signout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -159,7 +163,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      * installed Google Play services and returned to the app.
      */
 
-
+    //callback method to constantly update the current location of the user
     LocationCallback mLocationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
@@ -168,14 +172,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (locationList.size() > 0) {
                 //The last location in the list is the newest
                 final Location location = locationList.get(locationList.size() - 1);
-                //LatLng current = new LatLng(location.getLatitude(), location.getLongitude());
+
+                //list of current locations from every callback
                 coord.add(location);
                 Log.i("MapsActivity", "Location: " + location.getLatitude() + " " + location.getLongitude());
-                //Log.i("Inside Coord: ", "Current " + current);
+
 
                 Log.i("Test", "test: " + coord.size());
 
-
+                //current location
                 mLastLocation = location;
 
 
@@ -183,36 +188,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mCurrLocationMarker.remove();
                 }
 
+                //user location is constantly updated on firebase as the ambulance moves
                 FirebaseUser currentUser = mAuth.getCurrentUser();
-
                 Map<String, Object> newL = new HashMap<>();
                 newL.put("currentLocation", new GeoPoint(location.getLatitude(), location.getLongitude()));
-                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+                db.collection("ambulances").document(currentUser.getUid()).set(newL, SetOptions.merge());
 
 
-//                try{
-//                if(locationList.get(locationList.size()-1) != locationList.get(locationList.size()-2)){
-//                    same = false;
-//                }} catch (ArrayIndexOutOfBoundsException e){
-//
-//                }
 
-
-                //Place current location marker
+                //Place current location marker of ambulance
                 final LatLng here = new LatLng(coord.get(0).getLatitude(), coord.get(0).getLongitude());
                 final LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-                /*MarkerOptions markerOptions = new MarkerOptions();
-                markerOptions.position(latLng);
-                markerOptions.title("Current Position");
-                markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_CYAN));
-                mCurrLocationMarker = mMap.addMarker(markerOptions);*/
 
-
+                //if user has clicked on a destination marker and the polyline has been drawn, centre the camera position to the ambulance current location
                 if(allpolylines.size() > 0) {
                     CameraPosition cameraPosition = new CameraPosition.Builder().target(latLng).zoom(13).build();
                     mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
                 }
                 else{
+
+                    //position camera to current location when user first opens MapsActivity
                     if (mMap != null)
                         if (mMap != null)
                             if (isFirstTime) {
@@ -225,23 +220,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
 
                 }
-                //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 13));
                 mMap.getUiSettings().setZoomControlsEnabled(true);
 
+
+                //invisible button on MapsActivity UI
                 btn = findViewById(R.id.InvisibleButton);
 
 
-
+                //draw a new polyline every time the invisible button is clicked
                 btn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
 
-//                            if(allpolylines.size() > 0){
-//                                for(Polyline l: allpolylines){
-//                                    l.remove();
-//                                }
-//                            }
-
+                                    //origin is set to the current location of the ambulance
                                     LatLng origin = new LatLng(location.getLatitude(), location.getLongitude());
                                     try{
                                     LatLng dest = destination.get(0);
@@ -252,7 +243,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                         // Start downloading json data from Google Directions API
                                         FetchUrl.execute(url);
 
-//                                        allpolylines.get(1).remove();
 
 
                                     }catch (IndexOutOfBoundsException e){
@@ -268,9 +258,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 try{
                     float[] distance = new float[1];
+
+                    //calculate distance between current location of two callbacks to check whether the ambulance is moving
                     Location.distanceBetween(coord.get(coord.size()-2).getLatitude(),coord.get(coord.size()-2).getLongitude(),coord.get(coord.size()-1).getLatitude(), coord.get(coord.size()-1).getLongitude(), distance);
                     Log.i("Dis", "dis" + distance[0]);
 
+                    //if ambulance is moving, we constantly perform the button click
                     if(distance[0] > 2){
 
                         btn.performClick();
@@ -293,8 +286,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
+        //location callback interval is set to 1 second
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(1000); // two minute interval of updating the location. number must be in milliseconds
+        mLocationRequest.setInterval(1000); // one second. number must be in milliseconds
         mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
 
@@ -319,21 +313,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
 
-//        Marker mChangiGeneralHospital = mMap.addMarker(new MarkerOptions().position(ChangiGeneralHospital)
-//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
-//
-//
-//
-//
-//        Marker mParkwayEastHospital = mMap.addMarker(new MarkerOptions().position(ParkwayEastHospital)
-//                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE)));
-
+        //add markers at hospital locations.
+        //markers of all hospitals in singapore to be added in future works
 
         IconGenerator iconGenerator = new IconGenerator(this);
 
         addIcon(iconGenerator, "Changi General Hospital", new LatLng(1.3405, 103.9496));
 
         addIcon(iconGenerator, "Parkway East Hospital", new LatLng(1.3150, 103.9088));
+
 
         iconGenerator.setBackground(getResources().getDrawable(R.drawable.hospitalmarker));
 
@@ -348,20 +336,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
                     LatLng dest = marker.getPosition();
 
+                    // dest = position of chosen marker
                     if(destination.size() != 1){
                         destination.add(dest);
                     }
                     else
+                        //clear previous destination and set new destination
                         destination.set(0, dest);
 
-                   // FirebaseUser currentUser = mAuth.getCurrentUser();
-                    //Map<String, Object> newAmbu = new HashMap<>();
-
-                    //GeoPoint AmbuDest = new GeoPoint(destination.get(0).latitude, destination.get(0).longitude);
-
-                    //newAmbu.put("Destination", AmbuDest);
-                    //newAmbu.put("isActive",true);
-                    //db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
 
 
                     String url = getUrl(origin, dest);
@@ -375,6 +357,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 }
                 else {
+                    //change destination when user clicks a different marker
                     change = true;
                     polylineFinal.remove();
                     LatLng origin = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
@@ -390,10 +373,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                     // Start downloading json data from Google Directions API
                     FetchUrl.execute(url);
-                    //move map camera
 
-                    //mMap.moveCamera(CameraUpdateFactory.newLatLng(origin));
-                    //mMap.animateCamera(CameraUpdateFactory.zoomTo(13));
 
                     return true;
                 }
@@ -564,6 +544,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LatLng position = new LatLng(lat, lng);
                     list.add(new GeoPoint(lat,lng));
 
+                    //add all the coordinates to be drawn out to points
                     points.add(position);
                 }
 
@@ -574,12 +555,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 lineOptions.jointType(DEFAULT);
 
 
-
+                //update the route to be taken by the ambulance to firebase
                 FirebaseUser currentUser = mAuth.getCurrentUser();
 
                 Map<String, Object> newL = new HashMap<>();
                 newL.put("route", list);
-                db.collection("AmbulanceSide").document(currentUser.getUid()).set(newL, SetOptions.merge());
+                db.collection("ambulances").document(currentUser.getUid()).set(newL, SetOptions.merge());
 
 
 
@@ -589,12 +570,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             // Drawing polyline in the Google Map for the i-th route
             if(lineOptions != null) {
+
+                //draw the new polyline before removing the previous one to prevent the line from blinking every time a new one is drawn
                 polylineFinal = mMap.addPolyline(lineOptions);
                 if(allpolylines.size() > 1 ){
                     for ( Polyline l: allpolylines){
                         l.remove();
                     }
                 }
+
+                //add the newest polyline
                 allpolylines.add(polylineFinal);
                 Log.i("POLY", "Size: " + allpolylines.size());
             }
@@ -623,7 +608,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            // Should we show an explanation?
+
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)) {
 
@@ -696,6 +681,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     protected void onDestroy() {
+        FirebaseUser user = mAuth.getCurrentUser();
         Log.i(TAG, "onDestroy");
         super.onDestroy();
     }
@@ -710,16 +696,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
-    /*private void addNew(){
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        Map<String, Object> newAmbu = new HashMap<>();
-        newAmbu.put("Email", currentUser.getEmail());
-        newAmbu.put("AmbulanceID", currentUser.getUid());
-
-        db.collection("AmbulanceSide").document(currentUser.getUid()).set(newAmbu);
-
-    } */
 
     @Override
     protected void onStart() {
